@@ -1,0 +1,21 @@
+$ cat .gitignore
+
+# temporary (MATLAB) files are ignored
+*.m~
+
+# Ingore matlab datasets
+*.mat
+
+# Can ignore specific files
+.DS_Store
+
+# Ignore temporary files
+*~
+
+# Folders
+/html
+/figures
+
+# My personal test files and folders
+test_*
+/test_*

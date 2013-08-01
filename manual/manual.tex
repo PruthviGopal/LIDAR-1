@@ -1,0 +1,212 @@
+\documentclass[
+12pt,
+a4paper,
+%bibtotoc	,		%include Bib in TOC
+twoside]
+{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+%\usepackage{marvosym}
+\usepackage[pdftex]{graphicx}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\usepackage[nottoc]{tocbibind}		% Implement bib in toc
+\usepackage{natbib}
+\usepackage[a4paper]{geometry}
+\usepackage{listings}
+
+\pagestyle{myheadings}
+\markright{Markus Schmidt\hfill LIDAR post-processing in MATLAB\hfill}
+
+\urlstyle{same}
+
+\makeindex
+
+\begin{document}
+\lstset{language=Matlab}				% Define language for listings
+
+% Import of title page
+\input{./title.tex}
+
+\newpage
+
+\tableofcontents
+
+\newpage
+
+\section{Wake Analysis}
+This is the section for wake analysis. The wake analysis consists of two sections. The first deals with time averaging. In this case, 2 consequent LIDAR measurements are taken and a time averaged property field of all measurements is interpolated. These properties are velocity, vorticity and wind shear,\newline
+The second section, phase averaging, computes the phase of the blades in order to interpolate the same properties as in the time averaging method.
+
+\subsection{Time Averaging}
+The method of measurement is based on 2 separate LIDAR measurements in a 2D-plane at different location. Since the LIDAR is only able to measure radial velocities, this 2 measurements are necessary to interpolate a 2D flow field.\\
+The algorithm presented here takes first both measurements as single ones and interpolates the radial velocities. In a second step, these interpolated fields are used to undergo a vectorial addition and achieve a 2D velocity flow field.\\
+The data is filtered by the following constrains: All measurements below a range of 50 metres are deleted due to the unability of the LIDAR to provide reasonable results. In addition, the threshold of the Doppler-intensity ( as a meausure of signal-to-noise ratio) is set to 1.01.
+The file 
+\subsubsection{\texttt{time\_{}average2D}: I/O Definition}
+\begin{enumerate}
+\item \verb![vel_comps] = time_average2D(gridprops, range)!
+\item \verb![vel_comps] = time_average2D(gridprops, range,...!\\
+ \verb!save_figure)!
+\item \verb![vel_comps] = time_average2D(gridprops, range,...!\\
+ \verb!save_figure, lidar_sync, ldm_sync)!
+\item \verb![vel_comps] = time_average2D(gridprops, range,...!\\
+ \verb!save_figure, lidar_sync, ldm_sync, vlimit)!
+\end{enumerate}
+The numerical input \verb!grid_props! has to be of the format\\
+\verb![x_min, x_max, y_min, y_max, stepwidth]!. The x-coordinate is defined according to measurement 1. $x=0$ is the location of LIDAR of measurement 1. The positive x-direction describes the situation when azimuth and elevation are both of 0 degrees. The y direction is the height above the LIDAR. \verb!range! is the distance of 2 data points on the beams in metres. This 2 parametres are compulsory.\\
+If figures are to be computed and saved, \verb!save_figure! has to be set \verb!true!. Note that the selected folder will be saved in \verb!rootfigures.txt! in the script folder. Deleting of this file will lead to a GUI to select a new location.\\
+Furthermore, the parametres \verb!lidar_sync! and \verb!ldm_sync! can be used to syncronize the measurements of WindRover and LDM timewise. In this case, attention has to be given to the correct timeframes for cropping the measurements. The parametre \verb!vlimit! limits the axis of the colorbars to the given value in positive and negative direction.\\
+During the first run, the function demands locations of the data. These locations are stored in the file \verb!lastpath.txt! in the script folder and will be used in future runs of the function. Deletion of \verb!lastpath.txt! resets the locations.\\
+Note that the meshgrid and interpolated values are according to the function \verb!meshgrid()! in MATLAB.\\
+The output of \verb!time_average2D! is in every case the struct \verb!vel_comps! which has the following structure:
+\begin{itemize}
+\item \verb!x_meshgrid!: x-coordinates in meshgrid format
+\item \verb!y_meshgrid!: y-coordinates in meshgrid format
+\item \verb!u_lin!: horizontal wind component (linear)
+\item \verb!v_lin!: vertical wind component (linear)
+\item \verb!u_near!: horizontal wind component (nearest neighbour)
+\item \verb!v_near!: vertical wind component (nearest neighbour)
+\item \verb!u_nat!: horizontal wind component (natural neighbour)
+\item \verb!v_nat!: vertical wind component (natural neighbour)
+\end{itemize}
+
+\subsubsection{\texttt{vorticity2D}: I/O Definition}
+\begin{enumerate}
+\item \verb![omega] = vorticity2D()!
+\item \verb![omega] = vorticity2D(x_mesh, y_mesh, u, v, save_figure,...!\\ \verb!omega_limit)!
+\item \verb![omega] = vorticity2D(vel_comps, save_figure,...!\\ \verb!omega_limit)!
+\end{enumerate}
+The function \texttt{vorticity2D} has 3 different input methods. The first is without any input variables. A GUI is started to select and import the relevant data.\\
+The second input method is applied for velocity field created by code of Mohsen Zendehbad. The input parametres \verb!x_mesh! and \verb!y_mesh! do not comply with the requirements in \verb!meshgrid!. Hence this option was necessary.\\
+The third option takes the struct \verb!vel_comps! created by function \verb!time_average2d! as an input.\\
+In addition, the parametre \verb!save_figure! has the same function as in \verb!time_average2D!. Note that the selected folder will be saved in \verb!rootfigures.txt! in the script folder. Deleting of this file will lead to a GUI to select a new location.\\
+During the first run, the function demands locations of the data. These locations are stored in the file \verb!lastpath.txt! in the script folder and will be used in future runs of the function. Deletion of \verb!lastpath.txt! resets the locations.\\
+The function of \verb!omega_limit! is to limit the colorbar axis to the value given.
+The calculation is done with a centered finite difference method of 2\textsuperscript{nd}(2c) and 4\textsuperscript{th}(4c) order, respectively.\\
+The output for option 1 and 2 is
+\begin{itemize}
+\item \verb!omega!:  vorticity field, 2c, according to input grid
+\end{itemize}
+The output for option 3 is the struct \verb!omega! with data of vorticity:
+\begin{itemize}
+\item \verb!x_meshgrid!: x-coordinates in meshgrid format
+\item \verb!y_meshgrid!: y-coordinates in meshgrid format
+\item \verb!omega_4c_lin!: vorticity field, 4c, linear interpolation
+\item \verb!omega_4c_near!: vorticity field, 4c, nearest neighbour
+\item \verb!omega_4c_nat!: vorticity field, 4c, natural neighbour
+\end{itemize}
+
+\subsubsection{\texttt{shear2D}: I/O Definition}
+\begin{enumerate}
+\item \verb![shear_x, shear_y] = shear2D()!
+\item \verb![shear_x, shear_y] = shear2D(x_mesh, y_mesh, u, v,...!\\
+ \verb!save_figure, shear_limit)!
+\item \verb![shear_x, shear_y] = shear2D(vel_comps, save_figure,...!\\ \verb!shear_limit)!
+\end{enumerate}
+The input parametres are equal to \verb!vorticity2D! and the same rules apply. The output \verb!shear_x! and \verb!shear_y! are defined as
+\begin{itemize}
+\item \verb!shear_x!: Wind shear in x-direction
+\item \verb!shear_y!: Wind shear in y-direction
+\end{itemize}
+
+\subsection{Phase Averaging}
+Since the regarded turbines all have 3 blades, the first assumption is a repeated wake independend of the position of one blade but their overall configuration. This leads to a period of 120 degrees regarding the position of the blades.\\
+To find the the phase for each beam of the LIDAR measurements, the following algorithm is applied. The LDM data is used to compute the phase. First, the number of revolutions (nor) is calculated with the given trigger points. It is assumed that the nor is constant between 2 consequent datapoints. Second, the trigger point is defined as phase = 0. The phase of one LIDAR beam is then computed by multiplying the nor with the time difference between the last LDM trigger and the time of the beam. With a radians multiplication one achieves the phase in radians.\\
+The phase is then divided into discrete intervals of number \verb!Nphase!. The same internal algorithm are applied to these sets of data then it is done once in\\ \verb!time_average2D!.
+
+\subsubsection{\texttt{phase\_{}average2D}: I/O Definition}
+\begin{itemize}
+\item \verb![phase_velocity] = phase_average2D(gridprops, range,...!\\
+\verb!Nphase, lidar_sync, ldm_sync)!
+\item \verb![phase_velocity] = phase_average2D(gridprops, range,...!\\
+\verb!Nphase, lidar_sync, ldm_sync, save_figure)!
+\item \verb![phase_velocity] = phase_average2D(gridprops, range,...!\\
+\verb!Nphase, lidar_sync, ldm_sync, save_figure, limit)!
+\end{itemize}
+All description of input parametres of \verb!time_average2D! apply as well for\\ \verb!phase_average2D!. In addition, the parametre \verb!Nphase! defines the number of discrete phase ranges. The output struct \verb!phase_velocity! consists of
+\begin{itemize}
+\item \verb!phase_range!: range of phases in rad
+\item \verb!x_meshgrid!: x-coordinates in meshgrid format
+\item \verb!y_meshgrid!: y-coordinates in meshgrid format
+\item \verb! u_lin!: horizontal wind component (linear)
+\item \verb!v_lin!: vertical wind component (linear)
+\item \verb!velocity_2D_lin!: absolute value of wind component (linear)
+\item \verb!u_near!: horizontal wind component (nearest neighbour)
+\item \verb!v_near!: vertical wind component (nearest neighbour)
+\item \verb!velocity_2D_near!: absolute value of wind component (nearest neighbour)
+\item \verb!u_nat!: horizontal wind component (natural neighbour)
+\item \verb!v_nat!: vertical wind component (natural neighbour)
+\item \verb!velocity_2D_nat!: absolute value of wind component (natural neighbour)
+\end{itemize}
+\subsubsection{\texttt{phase\_{}vorticity2D}: I/O Definition}
+\begin{enumerate}
+\item \verb![phase_vorticity] = phase_vorticity2D(phase_velocity)!
+\item \verb![phase_vorticity] = phase_vorticity2D(phase_velocity,...!\\ \verb!save_figure)!
+\item \verb![phase_vorticity] = phase_vorticity2D(phase_velocity,...!\\ \verb!save_figure, limit)!
+\end{enumerate}
+The input parametre \verb!phase_velocity! is the output of \texttt{phase\_{}average2D}. The parametres \verb!save_figure! and \verb!limit! are used in the same manner as in the previous functions.
+The output struct \verb!phase_vorticity! is defined as
+\begin{itemize}
+\item \verb!phase_range!: range of phases in rad
+\item \verb!x_meshgrid!: x-coordinates in meshgrid format
+\item \verb!y_meshgrid!: y-coordinates in meshgrid format
+\item \verb!vorticity_2D_lin!: absolute value of wind component (linear)
+\item \verb!vorticity_2D_near!: absolute value of wind component (nearest neighbour)
+\item \verb!vorticity_2D_nat!: absolute value of wind component (natural neighbour)
+\end{itemize}
+
+\subsubsection{\texttt{phase\_{}shear2D}: I/O Definition}
+\begin{enumerate}
+\item \verb![phase_shear] = phase_shear2D(phase_velocity)!
+\item \verb![phase_shear] = phase_shear2D(phase_velocity,...!\\ \verb!save_figure)!
+\item \verb![phase_shear] = phase_shear2D(phase_velocity,...!\\ \verb!save_figure, shear_limit)!
+\end{enumerate}
+The input parametre \verb!phase_velocity! is the output of \texttt{phase\_{}average2D}. The parametres \verb!save_figure! and \verb!shear_limit! are used in the same manner as in the previous functions.
+The output struct \verb!phase_shear! is defined as
+\begin{itemize}
+\item \verb!phase_range!: range of phases in rad
+\item \verb!x_meshgrid!: x-coordinates in meshgrid format
+\item \verb!y_meshgrid!: y-coordinates in meshgrid format
+\item \verb!shear_2D_lin!: shear field, 4c, linear interpolation
+\item \verb!shear_2D_lin_x!: shear field, 4c, linear interpolation, x-derivative
+\item \verb!shear_2D_lin_y!: shear field, 4c, linear interpolation, y-derivative
+\item \verb!shear_2D_near!:  shear field, 4c, nearest neighbour
+\item \verb!shear_2D_near_x!: shear field, 4c, nearest neighbour, x-derivative
+\item \verb!shear_2D_near_y!: shear field, 4c, nearest neighbour, y-derivative
+\item \verb!shear_2D_nat!: shear field, 4c, natural neighbour
+\item \verb!shear_2D_nat_x!: shear field, 4c, natural neighbour, x-derivative
+\item \verb!shear_2D_nat_y!: shear field, 4c, natural neighbour, y-derivative neighbour)
+\end{itemize}
+\newpage
+\section{Drive and Measure}
+During the measurement campaign called "Drive and Measure" the WindRover is moving while scanning its environment. The goal is to create a radar like velocity or gradient map on an existing satellite image.
+
+\subsection{\texttt{drivescan2D}: I/O Definition}
+\begin{enumerate}
+\item \verb![ ] = drivescan2D( start_time, end_time, lidar_home, log_home,...!\\
+\verb!range, map_file, long, lat,scale, color_code)!
+\item \verb![ ] = drivescan2D( start_time, end_time, lidar_home, log_home,...!\\
+\verb!range, map_file, long, lat,scale, color_code, usegradient, limit)!
+\end{enumerate}
+The parametres \verb!start_time! and \verb!end_time! define the start and end of the measurement in format \verb![yyyy mm dd hh minmin ss]!. The parametres \verb!lidar_home! and \verb!log_home! are strings containt the folder with LIDAR (main year folder) or GPS files, respectively. The \verb!range! is the distance between 2 datapoints on one laser beam and \verb!map_file! contains the adress of the satellite image. \verb!long! and \verb!lat! contain the GPS coordinates of the reference point on this map, while \verb!scale! is the scale in metres on the map. The parametre \verb!color_code! is s string containing the adress of the color code \verb!.txt.! file.\\
+As an option the parametres \verb!use_gradient! and \verb!limit! can be used. If \verb!usegradient! is \verb!true!, instead of the velocity field the gradient will be computed. The effect of parametre \verb!limit! depends on \verb!usegradient!. For the velocity the axis is set to \verb!caxsis([-limit, limit])! and for gradient to \verb!caxsis([0, limit])!.\\
+Furthermore, during the first run the function asks for a location to save the figures and images. The chosen location is saved in \verb!root_superposer! for following runs of the function. There is no output in MATLAB of the function, but the results are saved as \verb!.fig! and \verb!.png!.
+
+\newpage
+\section{Source Code}
+\subsection{\texttt{time\_{}average2D}}
+\lstinputlisting[frame=single, breaklines=true]{../time_average2D.m}
+\subsection{\texttt{vorticity2D}}
+\lstinputlisting[frame=single, breaklines=true]{../vorticity2D.m}
+\subsection{\texttt{shear2D}}
+\lstinputlisting[frame=single, breaklines=true]{../shear2D.m}
+\subsection{\texttt{phase\_{}vorticity2D}}
+\lstinputlisting[frame=single, breaklines=true]{../phase_vorticity2D.m}
+\subsection{\texttt{phase\_{}shear2D}}
+\lstinputlisting[frame=single, breaklines=true]{../phase_shear2D.m}
+\subsection{\texttt{drivescan2D}}
+\lstinputlisting[frame=single, breaklines=true]{../drivescan2D.m}
+\end{document}

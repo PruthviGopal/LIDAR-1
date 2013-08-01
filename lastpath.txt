@@ -1,0 +1,3 @@
+/media/Windows/Users/smiddy/Documents/Studium/ETH Zurich/Master/testing/test_data/20130504MontCrosin_Markus/LIDAR/2013/201305/20130505
+/media/Windows/Users/smiddy/Documents/Studium/ETH Zurich/Master/testing/test_data/20130504MontCrosin_Markus/phase_locked_average/LDM_final.txt
+/media/Windows/Users/smiddy/Documents/Studium/ETH Zurich/Master/testing/test_data/20130504MontCrosin_Markus/TruckTracking
